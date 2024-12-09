@@ -1,0 +1,8 @@
+[package]
+name = "api_with_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web="4"
+diesel = {version = "2.2.6", features = ["postgres_backend", "postgres", "r2d2", "serde_json"]}

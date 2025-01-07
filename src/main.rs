@@ -1,29 +1,43 @@
-use actix_web::{ web, App, HttpServer, middleware::Logger};
-use diesel::{r2d2, PgConnection};
-use r2d2::ConnectionManager;
 
-// use api_with_rust::routes;
+use actix_web::{web, App, HttpServer, middleware::Logger, middleware};
+use actix_web::http::StatusCode;
+use actix_web::middleware::{ErrorHandlers};
+use diesel::{Connection, RunQueryDsl, SelectableHelper};
 
+pub mod handlers;
+pub mod models;
+pub mod schemas;
+pub mod config;
+pub mod utils;
+pub mod middlewares;
+// pub mod routes;
 mod routes;
-mod config;
-// use api_with_rust
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // let pool = config::database::init_pool();
-    // connect to SQLite DB
-    let manager = ConnectionManager::<PgConnection>::new("localhost:5432/lumbung");
-    let pool = r2d2::Pool::builder()
-        .build(manager)
-        .expect("database URL should be valid path to SQLite DB file");
-
-    HttpServer::new(move|| App::new()
-        .app_data(web::Data::new(pool.clone()))
-        .wrap(Logger::default())
-        .configure(routes::user_routes::init))
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+    let pool = match config::database::init_pool(){
+        Ok(pool) => Some(pool),
+        Err(e) => {
+            eprintln!("Failed to create pool: {}", e);
+            None
+        },
+    };
+    HttpServer::new(move||
+                        {
+                            let mut app = App::new()
+                                // .wrap(middlewares::error_middleware::configure_error_handlers())
+                                .wrap(Logger::default())
+                                .configure(routes::user_routes::init);
+                            if pool.is_some(){
+                                app = app.data(pool.clone().unwrap());
+                            }
+                            app
+                        })
         .bind("127.0.0.1:8082")?
         .run()
         .await
-}
+    }
 
 

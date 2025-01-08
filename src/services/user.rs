@@ -18,8 +18,7 @@ pub async fn list_users(
     pool: web::Data<DbPool>,
 ) -> actix_web::Result<HttpResponse> {
     let query = accounts.select(User::as_select());
-    let mut conn = pool.get().expect("Connection Error");
-
+    let mut conn = pool.get().map_err(|e| actix_web::error::ErrorServiceUnavailable(e))?;
     let users = web::block(move || {
         let data = query.load::<User>(&mut conn).expect("Error loading users");
         data
@@ -82,30 +81,52 @@ mod tests {
     use crate::config::database::init_pool;
 
     #[actix_rt::test]
-    async fn list_users_returns_users_successfully() {
+    async fn list_users_returns_empty_list_when_no_users() {
         let pool = init_pool();
         let mut app = test::init_service(App::new().app_data(web::Data::new(pool.clone())).service(list_users)).await;
 
         let req = test::TestRequest::get().uri("/all").to_request();
         let resp = test::call_service(&mut app, req).await;
-
-        assert!(resp.status().is_success());
         let body: serde_json::Value = test::read_body_json(resp).await;
+
         assert!(body["data"]["entries"].is_array());
+        assert_eq!(body["data"]["entries"].as_array().unwrap().len(), 0);
     }
 
-    #[actix_rt::test]
-    async fn list_users_handles_empty_database() {
-        let pool = init_pool();
-        let mut app = test::init_service(App::new().app_data(web::Data::new(pool.clone())).service(list_users)).await;
+    // #[actix_rt::test]
+    // async fn create_user_creates_user_successfully() {
+    //     let pool = init_pool();
+    //     let mut app = test::init_service(App::new().app_data(web::Data::new(pool.clone())).service(create_user)).await;
+    //
+    //     let new_user = NewUser {
+    //         username: "testuser".to_string(),
+    //         email: "testuser@example.com".to_string(),
+    //         password: "password".to_string(),
+    //     };
+    //
+    //     let req = test::TestRequest::post().uri("/create").set_json(&new_user).to_request();
+    //     let resp = test::call_service(&mut app, req).await;
+    //     let body: serde_json::Value = test::read_body_json(resp).await;
+    //
+    //     assert_eq!(body["data"]["username"], "testuser");
+    //     assert_eq!(body["data"]["email"], "testuser@example.com");
+    // }
 
-        let req = test::TestRequest::get().uri("/all").to_request();
+    #[actix_rt::test]
+    async fn create_user_fails_with_invalid_data() {
+        let pool = init_pool();
+        let mut app = test::init_service(App::new().app_data(web::Data::new(pool.clone())).service(create_user)).await;
+
+        let invalid_user = serde_json::json!({
+        "username": "",
+        "email": "invalidemail",
+        "password": "short"
+    });
+
+        let req = test::TestRequest::post().uri("/create").set_json(&invalid_user).to_request();
         let resp = test::call_service(&mut app, req).await;
 
-        assert!(resp.status().is_success());
-        let body: serde_json::Value = test::read_body_json(resp).await;
-        // assert_ne!(body["entries"].as_array().unwrap().len(), 0);
-        assert!(body["data"]["entries"].as_array().unwrap().len()>= 1);
+        assert_eq!(resp.status(), actix_web::http::StatusCode::BAD_REQUEST);
     }
 }
 

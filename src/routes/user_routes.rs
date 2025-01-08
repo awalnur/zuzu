@@ -1,6 +1,5 @@
-use actix_web::dev::HttpServiceFactory;
 use actix_web::web;
-use crate::handlers::user_handler::{ list_users, create_user};
+use crate::services::user::{list_users, create_user};
 
 pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(

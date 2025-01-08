@@ -2,7 +2,7 @@ use diesel::r2d2::ConnectionManager;
 use diesel::{   PgConnection};
 use dotenvy::dotenv;
 use std::env;
-use crate::utils::response::AppError;
+use crate::utils::errors::AppError;
 
 // Database connection configuration
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
@@ -15,10 +15,15 @@ pub fn init_pool() -> Result<DbPool, AppError> {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let manager = ConnectionManager::<PgConnection>::new(&database_url);
 
-    // Create the database pool with the connection managers.
-    r2d2::Pool::builder()
-    .build(manager)
-        .map_err(|e| AppError::ServiceUnavailable(format!("Failed to create pool: {}", e)))
 
+    // Create the database pool with the connection managers.
+    let pool = r2d2::Pool::builder()
+    .build(manager)
+        .map_err(|e| AppError::ServiceUnavailable(format!("Failed to create pool: {}", e)))?;
+
+
+    // Return the database pool
+    pool.get().map_err(|e| AppError::ServiceUnavailable(format!("Failed to get connection: {}", e)))?;
+    Ok(pool)
 
 }

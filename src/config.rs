@@ -1,4 +1,5 @@
 pub mod database;
+pub mod error_handling;
 
 use std::env;
 pub fn get_datbase_url() -> String {

@@ -1,35 +1,31 @@
-use std::collections::HashMap;
-use actix_web::{get, HttpResponse, Responder, web, post, Error};
-use actix_web::middleware::ErrorHandlers;
-use diesel::{QueryDsl, RunQueryDsl, SelectableHelper, prelude::*};
-use diesel::pg::Pg;
-use diesel::query_builder::AsQuery;
-use crate::{
-    models::user::User,
-    config::database::DbPool,
-    schemas::schemas::accounts::dsl::*,
-};
 use crate::models::user::NewUser;
 use crate::utils::response::ApiResponse;
-
+use crate::{config::database::DbPool, models::user::User, schemas::schemas::accounts::dsl::*};
+use actix_web::{get, post, web, HttpResponse, Responder};
+use diesel::query_builder::AsQuery;
+use diesel::{prelude::*, QueryDsl, RunQueryDsl, SelectableHelper};
+use std::collections::HashMap;
 
 #[get("/all")]
-pub async fn list_users(
-    pool: web::Data<DbPool>,
-) -> actix_web::Result<HttpResponse> {
+pub async fn list_users(pool: web::Data<DbPool>) -> actix_web::Result<HttpResponse> {
     let query = accounts.select(User::as_select());
-    let mut conn = pool.get().map_err(|e| actix_web::error::ErrorServiceUnavailable(e))?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| actix_web::error::ErrorServiceUnavailable(e))?;
     let users = web::block(move || {
         let data = query.load::<User>(&mut conn).expect("Error loading users");
         data
     })
-        .await?;
+    .await?;
 
     let mut res_data = HashMap::new();
     res_data.insert("entries", &users);
 
-    Ok(ApiResponse::ok(res_data, "Users fetched successfully", None))
-
+    Ok(ApiResponse::ok(
+        res_data,
+        "Users fetched successfully",
+        None,
+    ))
 }
 
 #[post("/create")]
@@ -42,15 +38,16 @@ pub async fn create_user(
         let mut conn = pool.get().expect("Connection Error");
         diesel::insert_into(accounts)
             .values(&user)
-            .get_result::<User>(&mut conn).expect("Error creating user")
+            .get_result::<User>(&mut conn)
+            .expect("Error creating user")
     })
-        .await?;
-    Ok(ApiResponse::ok(created_user, "User created successfully", None))
+    .await?;
+    Ok(ApiResponse::ok(
+        created_user,
+        "User created successfully",
+        None,
+    ))
 }
-
-
-
-
 
 // #[get("/users/{id}")]
 // pub async fn get_user_by_id(
@@ -73,17 +70,21 @@ pub async fn create_user(
 // }
 //
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, App};
     use crate::config::database::init_pool;
+    use actix_web::{test, App};
 
     #[actix_rt::test]
     async fn list_users_returns_empty_list_when_no_users() {
         let pool = init_pool();
-        let mut app = test::init_service(App::new().app_data(web::Data::new(pool.clone())).service(list_users)).await;
+        let mut app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(pool.clone()))
+                .service(list_users),
+        )
+        .await;
 
         let req = test::TestRequest::get().uri("/all").to_request();
         let resp = test::call_service(&mut app, req).await;
@@ -115,18 +116,25 @@ mod tests {
     #[actix_rt::test]
     async fn create_user_fails_with_invalid_data() {
         let pool = init_pool();
-        let mut app = test::init_service(App::new().app_data(web::Data::new(pool.clone())).service(create_user)).await;
+        let mut app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(pool.clone()))
+                .service(create_user),
+        )
+        .await;
 
         let invalid_user = serde_json::json!({
-        "username": "",
-        "email": "invalidemail",
-        "password": "short"
-    });
+            "username": "",
+            "email": "invalidemail",
+            "password": "short"
+        });
 
-        let req = test::TestRequest::post().uri("/create").set_json(&invalid_user).to_request();
+        let req = test::TestRequest::post()
+            .uri("/create")
+            .set_json(&invalid_user)
+            .to_request();
         let resp = test::call_service(&mut app, req).await;
 
         assert_eq!(resp.status(), actix_web::http::StatusCode::BAD_REQUEST);
     }
 }
-

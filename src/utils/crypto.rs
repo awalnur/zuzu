@@ -1,4 +1,8 @@
 use std::string::ToString;
+use argon2::{Argon2, ParamsBuilder, PasswordHasher, PasswordVerifier};
+use argon2::Algorithm::Argon2d;
+use argon2::password_hash::rand_core::OsRng;
+use argon2::password_hash::SaltString;
 use crate::utils::errors::AppError;
 use chrono::{DateTime, Utc};
 use pasetors::claims::{Claims, ClaimsValidationRules};
@@ -22,11 +26,19 @@ pub struct Claim {
     sub: String, // subject
 }
 
+pub struct Password {
+    pass: String
+}
+
 pub trait Token {
     fn generate_token(&self) -> String;
     fn load_claims(&self, token: &str) -> Result<Claims, AppError>;
 }
 
+pub trait ArgonHash {
+    fn hash_password(&self) -> String;
+    fn verify_password(&self, hash: &str) -> bool;
+}
 static SECRET_KEY: Lazy<String> = Lazy::new(|| {
     std::env::var("TOKEN_SECRET_KEY").expect("TOKEN_SECRET_KEY must be set")
 });
@@ -53,6 +65,7 @@ impl Token for Claim {
 
         let token =
             local::encrypt(&sk, &claims, Some(&footer), Some(b"implisit Assertion")).unwrap();
+
         token
     }
 
@@ -62,7 +75,6 @@ impl Token for Claim {
 
         let sk = SymmetricKey::<V4>::from(&key).unwrap();
         let pid = Id::from(&sk);
-        println!("simetry key {:?}", &sk);
         let mut footer = Footer::new();
         footer.key_id(&pid);
         let validation_rules = ClaimsValidationRules::new();
@@ -110,6 +122,29 @@ impl Token for Claim {
     }
 }
 
+impl ArgonHash for Password {
+    fn hash_password(&self) -> String {
+        let salt = SaltString::generate(&mut OsRng);
+        let params = ParamsBuilder::default().build().unwrap();
+
+        let config = Argon2::new(Argon2d, argon2::Version::V0x13, params);
+        let hash = config.hash_password(&self.pass.as_bytes(), &salt).unwrap();
+        hash.to_string()
+    }
+
+    fn verify_password(&self, hash: &str) -> bool {
+
+        let params = ParamsBuilder::default().build().unwrap();
+
+        let config = Argon2::new(Argon2d, argon2::Version::V0x13, params);
+        let parsed_hash = match argon2::PasswordHash::new(hash){
+            Ok(hash) => hash,
+            Err(_) => return false
+        };
+        config.verify_password(&self.pass.as_bytes(), &parsed_hash).is_ok()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -128,7 +163,6 @@ mod tests {
             sub: "subject".to_string(),
         };
         let token = claim.generate_token();
-        println!("token {:?}", token);
         assert_eq!(token.is_empty(), false);
     }
 
@@ -201,6 +235,45 @@ mod tests {
         let token = claim.generate_token();
         let result = claim.load_claims(&token);
         assert!(result.is_ok());
+    }
+    #[test]
+    fn hash_password_creates_valid_hash() {
+        let pass = Password {
+            pass: "".to_string()
+            };
+        let hash = pass.hash_password();
+        assert!(!hash.is_empty());
+    }
+
+    #[test]
+    fn verify_password_with_correct_password() {
+        let pass = Password {
+            pass: "password123".to_string()
+        };
+        let hash = pass.hash_password();
+        let is_valid = pass.verify_password(&hash);
+        assert!(is_valid);
+    }
+
+    #[test]
+    fn verify_password_with_incorrect_password() {
+        let pass = Password {
+            pass: "password123".to_string()
+        };
+        let hash = pass.hash_password();
+        let invalid_pass = Password {
+            pass: "wrongpassword".to_string()
+        };
+        let is_valid = invalid_pass.verify_password(&hash);
+        assert!(!is_valid);
+    }
+
+    #[test]
+    fn verify_password_with_invalid_hash() {
+        let password = Password{pass:"password123".to_string()};
+        let invalid_hash = "invalid_hash";
+        let is_valid = password.verify_password(invalid_hash);
+        assert!(!is_valid);
     }
 
 }

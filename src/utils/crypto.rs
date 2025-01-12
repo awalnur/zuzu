@@ -64,17 +64,22 @@ impl Token for Claim {
         let mut footer = Footer::new();
         footer.key_id(&pid);
         let validation_rules = ClaimsValidationRules::new();
-        let untrusted_token = UntrustedToken::<Local, V4>::try_from(token).expect("Failed to get untrusted token");
+        let untrusted_token = match UntrustedToken::<Local, V4>::try_from(token){
+            Ok(token) => token,
+            Err(_) => return Err(AppError::Unauthorized("Invalid Token".to_string()))
+        };
         let claims: Result<Claims, AppError> = match local::decrypt(&sk, &untrusted_token, &validation_rules, None, Some(b"implisit Assertion")){
             Ok(claims) => claims.payload_claims().cloned().ok_or(AppError::Unauthorized("Unauthorized Access".to_string())),
             Err(e) => {
                 if let ClaimValidation(e) = e {
-                    if let ClaimValidationError::Exp = e {
-                        return Err(AppError::Unauthorized("Token Expired".to_string()))
+                    match e {
+                        ClaimValidationError::Nbf => return Err(AppError::Unauthorized("Failed to validate token time".to_string())),
+                        ClaimValidationError::Exp => return Err(AppError::Unauthorized("Token Expired".to_string())),
+                        ClaimValidationError::Aud => return Err(AppError::Unauthorized("Failed to validate Audience ".to_string())),
+                        _ => return Err(AppError::Unauthorized("Unauthorized Access".to_string()))
                     }
-                    Err(AppError::Unauthorized("e".to_string()))
                 } else {
-                    Err(AppError::Unauthorized("Unauthorized Access".to_string()))
+                    Err(AppError::Unauthorized("Error when claims token".to_string()))
                 }
             }
         };
@@ -102,21 +107,54 @@ mod tests {
         println!("token {:?}", token);
         assert_eq!(token.is_empty(), false);
     }
+    #[test]
+    fn load_claims_with_expired_token() {
+        let claim = Claim {
+            iss: "provider".to_string(),
+            jti: "token_id".to_string(),
+            aud: "audience".to_string(),
+            nbf: Utc::now() - chrono::Duration::days(2),
+            exp: Utc::now() - chrono::Duration::days(1),
+            iat: Utc::now() - chrono::Duration::days(2),
+            sub: "subject".to_string(),
+        };
+        let token = claim.generate_token();
+        let result = claim.load_claims(&token);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Unauthorized: Token Expired");
+    }
 
     #[test]
-    fn test_load_claims() {
+    fn load_claims_with_invalid_token() {
         let claim = Claim {
             iss: "provider".to_string(),
             jti: "token_id".to_string(),
             aud: "audience".to_string(),
             nbf: Utc::now(),
-            exp: Utc::now()+chrono::Duration::days(1),
+            exp: Utc::now() + chrono::Duration::days(1),
+            iat: Utc::now(),
+            sub: "subject".to_string(),
+        };
+        let invalid_token = "invalid.token.string";
+        let result = claim.load_claims(invalid_token);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Unauthorized: Invalid Token");
+    }
+
+    #[test]
+    fn load_claims_with_not_before_token() {
+        let claim = Claim {
+            iss: "provider".to_string(),
+            jti: "token_id".to_string(),
+            aud: "audience".to_string(),
+            nbf: Utc::now() + chrono::Duration::days(1),
+            exp: Utc::now() + chrono::Duration::days(2),
             iat: Utc::now(),
             sub: "subject".to_string(),
         };
         let token = claim.generate_token();
-        let mut loaded_claim = claim.load_claims(&token).expect("Failed to load claims");
-        println!("loaded claim {:?}", loaded_claim);
-        assert_eq!(loaded_claim.get_claim("iss").expect("data"), "provider");
+        let result = claim.load_claims(&token);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().to_string(), "Unauthorized: Failed to validate token time");
     }
 }

@@ -17,17 +17,17 @@ use pasetors::{local, Local};
 use once_cell::sync::Lazy;
 
 pub struct Claim {
-    iss: String,        // Provider ()
-    jti: String,        // token id
-    aud: String,        // audience, client or other
-    nbf: DateTime<Utc>, //
-    exp: DateTime<Utc>,
-    iat: DateTime<Utc>,
-    sub: String, // subject
+    pub(crate) iss: String,        // Provider ()
+    pub(crate) jti: String,        // token id
+    pub(crate) aud: String,        // audience, client or other
+    pub(crate) nbf: DateTime<Utc>, //
+    pub(crate) exp: DateTime<Utc>,
+    pub(crate) iat: DateTime<Utc>,
+    pub(crate) sub: String, // subject
 }
 
 pub struct Password {
-    pass: String
+    pub plain: String
 }
 
 pub trait Token {
@@ -128,7 +128,7 @@ impl ArgonHash for Password {
         let params = ParamsBuilder::default().build().unwrap();
 
         let config = Argon2::new(Argon2d, argon2::Version::V0x13, params);
-        let hash = config.hash_password(&self.pass.as_bytes(), &salt).unwrap();
+        let hash = config.hash_password(&self.plain.as_bytes(), &salt).unwrap();
         hash.to_string()
     }
 
@@ -141,7 +141,7 @@ impl ArgonHash for Password {
             Ok(hash) => hash,
             Err(_) => return false
         };
-        config.verify_password(&self.pass.as_bytes(), &parsed_hash).is_ok()
+        config.verify_password(&self.plain.as_bytes(), &parsed_hash).is_ok()
     }
 }
 
@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn hash_password_creates_valid_hash() {
         let pass = Password {
-            pass: "".to_string()
+            plain: "".to_string()
             };
         let hash = pass.hash_password();
         assert!(!hash.is_empty());
@@ -248,7 +248,7 @@ mod tests {
     #[test]
     fn verify_password_with_correct_password() {
         let pass = Password {
-            pass: "password123".to_string()
+            plain: "password123".to_string()
         };
         let hash = pass.hash_password();
         let is_valid = pass.verify_password(&hash);
@@ -258,11 +258,11 @@ mod tests {
     #[test]
     fn verify_password_with_incorrect_password() {
         let pass = Password {
-            pass: "password123".to_string()
+            plain: "password123".to_string()
         };
         let hash = pass.hash_password();
         let invalid_pass = Password {
-            pass: "wrongpassword".to_string()
+            plain: "wrongpassword".to_string()
         };
         let is_valid = invalid_pass.verify_password(&hash);
         assert!(!is_valid);
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn verify_password_with_invalid_hash() {
-        let password = Password{pass:"password123".to_string()};
+        let password = Password{ plain:"password123".to_string()};
         let invalid_hash = "invalid_hash";
         let is_valid = password.verify_password(invalid_hash);
         assert!(!is_valid);

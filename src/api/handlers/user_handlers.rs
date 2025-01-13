@@ -1,27 +1,22 @@
-use crate::models::user::NewUser;
-use crate::utils::response::ApiResponse;
-use crate::{config::database::DbPool, models::user::User, schemas::schemas::accounts::dsl::*};
+use crate::{config::database::DbPool};
 use actix_web::{get, post, web, HttpResponse};
-use diesel::{QueryDsl, RunQueryDsl, SelectableHelper};
-use std::collections::HashMap;
+use crate::api::dto::responses::ApiResponse;
+use crate::domain::models::user::NewUser;
 
 #[get("/all")]
 pub async fn list_users(pool: web::Data<DbPool>) -> actix_web::Result<HttpResponse> {
-    let query = accounts.select(User::as_select());
-    let mut conn = pool
-        .get()
-        .map_err(|e| actix_web::error::ErrorServiceUnavailable(e))?;
-    let users = web::block(move || {
-        let data = query.load::<User>(&mut conn).expect("Error loading users");
-        data
-    })
-    .await?;
-
-    let mut res_data = HashMap::new();
-    res_data.insert("entries", &users);
+    // let query = accounts.select(User::as_select());
+    // let mut conn = pool
+    //     .get()
+    //     .map_err(|e| actix_web::error::ErrorServiceUnavailable(e))?;
+    // let users = web::block(move || {
+    //     let data = query.load::<User>(&mut conn).expect("Error loading users");
+    //     data
+    // })
+    //     .await?;
 
     Ok(ApiResponse::ok(
-        res_data,
+        "res_data",
         "Users fetched successfully",
         None,
     ))
@@ -33,16 +28,16 @@ pub async fn create_user(
     user: web::Json<NewUser>,
 ) -> actix_web::Result<HttpResponse> {
     let user = user.into_inner();
-    let created_user = web::block(move || {
-        let mut conn = pool.get().expect("Connection Error");
-        diesel::insert_into(accounts)
-            .values(&user)
-            .get_result::<User>(&mut conn)
-            .expect("Error creating user")
-    })
-    .await?;
+    // let created_user = web::block(move || {
+    //     let mut conn = pool.get().expect("Connection Error");
+    //     diesel::insert_into(accounts)
+    //         .values(&user)
+    //         .get_result::<User>(&mut conn)
+    //         .expect("Error creating user")
+    // })
+    //     .await?;
     Ok(ApiResponse::ok(
-        created_user,
+        "created_user",
         "User created successfully",
         None,
     ))

@@ -1,10 +1,11 @@
 
-use crate::schemas::schemas::password_hashes;
+use crate::infrastructure::database::schemas::schemas::{password_hashes, accounts};
+use crate::infrastructure::database::schemas::{ schemas::sql_types };
 use diesel::{Queryable, Identifiable, Insertable, Selectable, sql_types::*};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize)]
-#[diesel(table_name = crate::schemas::schemas::accounts)]
+#[diesel(table_name = accounts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     pub id: uuid::Uuid,
@@ -24,7 +25,7 @@ pub struct User {
 }
 
 #[derive(Debug, Deserialize, Insertable)]
-#[diesel(table_name = crate::schemas::schemas::accounts)]
+#[diesel(table_name = accounts)]
 pub struct NewUser {
     pub username: String,
     pub email: String,
@@ -39,7 +40,7 @@ pub struct NewUser {
 }
 
 #[derive(Debug,  Serialize, Deserialize, DbEnum)]
-#[ExistingTypePath = "crate::schemas::schemas::sql_types::TwoFactorMethodEnum"]
+#[ExistingTypePath = "sql_types::TwoFactorMethodEnum"]
 pub enum TwoFactorMethodEnum {
     None,
     Email,
@@ -50,7 +51,7 @@ pub enum TwoFactorMethodEnum {
 
 
 #[derive(Debug,  Serialize, Deserialize, DbEnum)]
-#[ExistingTypePath = "crate::schemas::schemas::sql_types::AccountStatusEnum"]
+#[ExistingTypePath = "sql_types::AccountStatusEnum"]
 pub enum AccountStatusEnum {
     Active,
     Locked,
@@ -59,16 +60,18 @@ pub enum AccountStatusEnum {
 }
 
 
-#[derive(Debug, Deserialize, Queryable,  Serialize, Selectable)]
+#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize)]
 #[diesel(table_name = password_hashes)]
 #[diesel(belongs_to(User))]
 pub struct PasswordHash{
-    pub id: uuid::Uuid,
-    pub user_id: uuid::Uuid,
-    pub password_hash: Vec<u8>,
-    pub salt: String,
-    pub algorithm: String,
-    pub is_temporary: bool,
-    pub last_change_at: chrono::NaiveDateTime,
-    pub expiry: chrono::NaiveDateTime,
+    pub id: Option<uuid::Uuid>,
+    pub user_id: Option<uuid::Uuid>,
+    pub password_hash: Option<Vec<u8>>,
+    pub salt: Option<Vec<u8>>,
+    pub algorithm: Option<String>,
+    pub is_temporary: Option<bool>,
+    pub last_change_at: Option<chrono::NaiveDateTime>,
+    pub expiry: Option<chrono::NaiveDateTime>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
 }

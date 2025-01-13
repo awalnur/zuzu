@@ -1,45 +1,19 @@
-use actix_web::{
-    HttpResponse
-    };
-
-use diesel::internal::derives::multiconnection::chrono::{DateTime, Utc};
+use actix_web::HttpResponse;
+use chrono::Utc;
 use serde::Serialize;
+use crate::api::dto::responses::{ApiError, ApiResponse, AuthResponse, ResponseContext};
 
-#[derive(Debug, Serialize)]
-/// Represents a standard API response.
-///
-/// # Fields
-/// - `success`: Indicates if the request was successful.
-/// - `message`: A message providing additional information about the response.
-/// - `data`: Optional data returned by the API.
-/// - `context`: Contextual information about the response.
-/// - `error`: Optional error information if the request was not successful.
-pub struct ApiResponse<T>{
-    pub success: bool,
-    pub message: String,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub data: Option<T>,
-    pub context: ResponseContext,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub error: Option<ApiError>,
+impl AuthResponse {
+    pub fn ok(access_token: String, refresh_token: String, expires: i64, token_type: String) -> HttpResponse {
+        HttpResponse::Ok().json(Self {
+            access_token,
+            refresh_token,
+            expires,
+            token_type: Some(token_type),
+        })
+    }
+
 }
-
-#[derive(Debug, Serialize)]
-pub struct ResponseContext {
-    pub timestamp: DateTime<Utc>,
-    pub user: Option<String>,
-}
-
-
-#[derive(Debug, Serialize)]
-pub struct ApiError{
-    pub code: String,
-    pub message: String,
-    #[serde(skip_serializing_if="Option::is_none")]
-    pub details: Option<serde_json::Value>
-}
-
-
 
 // Response builders
 impl<T: Serialize> ApiResponse<T> {
@@ -214,4 +188,3 @@ impl<T: Serialize> ApiResponse<T> {
     }
 
 }
-

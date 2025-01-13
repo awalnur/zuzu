@@ -1,9 +1,8 @@
 use crate::models::user::NewUser;
 use crate::utils::response::ApiResponse;
 use crate::{config::database::DbPool, models::user::User, schemas::schemas::accounts::dsl::*};
-use actix_web::{get, post, web, HttpResponse, Responder};
-use diesel::query_builder::AsQuery;
-use diesel::{prelude::*, QueryDsl, RunQueryDsl, SelectableHelper};
+use actix_web::{get, post, web, HttpResponse};
+use diesel::{QueryDsl, RunQueryDsl, SelectableHelper};
 use std::collections::HashMap;
 
 #[get("/all")]

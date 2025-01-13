@@ -1,13 +1,10 @@
-use actix_web::http::StatusCode;
-use actix_web::middleware::ErrorHandlers;
 use actix_web::{middleware::Logger, App, HttpServer};
-use diesel::{Connection, RunQueryDsl, SelectableHelper};
 
 pub mod config;
-pub mod services;
 pub mod middlewares;
 pub mod models;
 pub mod schemas;
+pub mod services;
 pub mod utils;
 // pub mod routes;
 mod routes;
@@ -29,7 +26,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .configure(routes::user_routes::init);
         if pool.is_some() {
-            app = app.data(pool.clone().unwrap());
+            app = app.app_data(pool.clone().unwrap());
         }
         app
     })

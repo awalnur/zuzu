@@ -1,8 +1,7 @@
-use actix_web::{web, HttpResponse, ResponseError};
-use actix_web::body::BoxBody;
+use actix_web::{HttpResponse, ResponseError};
 use actix_web::dev::ServiceResponse;
 use actix_web::http::StatusCode;
-use actix_web::middleware::{ErrorHandlerResponse, ErrorHandlers};
+use actix_web::middleware::{ErrorHandlerResponse};
 use thiserror::Error;
 use crate::utils::response::ApiResponse;
 

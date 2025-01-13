@@ -9,7 +9,7 @@ use pasetors::claims::{Claims, ClaimsValidationRules};
 use pasetors::errors::ClaimValidationError;
 use pasetors::errors::Error::ClaimValidation;
 use pasetors::footer::Footer;
-use pasetors::keys::{Generate, SymmetricKey};
+use pasetors::keys::{SymmetricKey};
 use pasetors::paserk::Id;
 use pasetors::token::UntrustedToken;
 use pasetors::version4::V4;
@@ -55,7 +55,7 @@ impl Token for Claim {
         claims.issued_at(&self.iat.to_rfc3339()).unwrap();
         claims.token_identifier(&self.jti).unwrap();
 
-        let key = base64::decode(SECRET_KEY.as_str())
+        let key = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, SECRET_KEY.as_str())
             .expect("Failed to decode key");
 
         let sk = SymmetricKey::<V4>::from(&key).unwrap();
@@ -70,7 +70,7 @@ impl Token for Claim {
     }
 
     fn load_claims(&self, token: &str) -> Result<Claims, AppError> {
-        let key = base64::decode(SECRET_KEY.as_str())
+        let key = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, SECRET_KEY.as_str())
             .expect("Failed to decode key");
 
         let sk = SymmetricKey::<V4>::from(&key).unwrap();

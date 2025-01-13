@@ -1,12 +1,9 @@
 use actix_web::{
-    error,
     HttpResponse
     };
 
 use diesel::internal::derives::multiconnection::chrono::{DateTime, Utc};
 use serde::Serialize;
-use thiserror::Error;
-
 
 #[derive(Debug, Serialize)]
 /// Represents a standard API response.

@@ -16,6 +16,7 @@ use pasetors::version4::V4;
 use pasetors::{local, Local};
 use once_cell::sync::Lazy;
 
+#[derive(Debug)]
 pub struct Claim {
     pub(crate) iss: String,        // Provider ()
     pub(crate) jti: String,        // token id

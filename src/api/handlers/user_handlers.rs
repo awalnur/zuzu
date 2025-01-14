@@ -1,7 +1,8 @@
 use crate::{config::database::DbPool};
-use actix_web::{get, post, web, HttpResponse};
+use actix_web::{delete, get, post, put, web, HttpResponse};
 use crate::api::dto::responses::ApiResponse;
 use crate::domain::models::user::NewUser;
+use crate::domain::services::user_services;
 
 #[get("/all")]
 pub async fn list_users(pool: web::Data<DbPool>) -> actix_web::Result<HttpResponse> {
@@ -27,18 +28,55 @@ pub async fn create_user(
     pool: web::Data<DbPool>,
     user: web::Json<NewUser>,
 ) -> actix_web::Result<HttpResponse> {
-    let user = user.into_inner();
-    // let created_user = web::block(move || {
-    //     let mut conn = pool.get().expect("Connection Error");
-    //     diesel::insert_into(accounts)
-    //         .values(&user)
-    //         .get_result::<User>(&mut conn)
-    //         .expect("Error creating user")
-    // })
-    //     .await?;
+    let userdata = user.into_inner();
+    let create_user = user_services::create_user(pool, userdata).await?;
     Ok(ApiResponse::ok(
-        "created_user",
+        create_user,
         "User created successfully",
+        None,
+    ))
+}
+
+#[get("/users/{id}")]
+pub async fn get_user_by_id(
+    pool: web::Data<DbPool>,
+    id: web::Path<String>,
+) -> actix_web::Result<HttpResponse> {
+    let id = id.into_inner();
+    let user = user_services::find_user_by_id(pool, id).await?;
+    Ok(ApiResponse::ok(
+        user,
+        "User fetched successfully",
+        None,
+    ))
+}
+
+#[put("/update/{id}")]
+pub async fn update_user(
+    pool: web::Data<DbPool>,
+    id: web::Path<String>,
+    user: web::Json<NewUser>,
+) -> actix_web::Result<HttpResponse> {
+    let id = id.into_inner();
+    let user = user.into_inner();
+    let updated_user = user_services::update_user(pool, id, user).await?;
+    Ok(ApiResponse::ok(
+        updated_user,
+        "User updated successfully",
+        None,
+    ))
+}
+
+#[delete("/delete/{id}")]
+pub async fn delete_user(
+    pool: web::Data<DbPool>,
+    id: web::Path<String>,
+) -> actix_web::Result<HttpResponse> {
+    let id = id.into_inner();
+    user_services::delete_user(pool, id).await?;
+    Ok(ApiResponse::ok(
+        "res_data",
+        "User deleted successfully",
         None,
     ))
 }

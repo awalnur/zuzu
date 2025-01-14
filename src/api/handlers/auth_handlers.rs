@@ -1,22 +1,22 @@
 use actix_web::{get, post, web, HttpResponse};
-use crate::api::dto::requests::auth::RegisterRequest;
 use crate::api::dto::responses::{ApiResponse, AuthResponse};
 use crate::config::database::DbPool;
 use crate::domain::models::authentication::LoginRequest;
 use crate::domain::services::authentication;
 
-#[post("/create_user")]
-pub async fn create_user(
-    pool: web::Data<DbPool>,
-    user: web::Json<RegisterRequest>,
-) -> actix_web::Result<HttpResponse> {
-    let user = user.into_inner();
-    Ok(ApiResponse::ok(
-        user,
-        "User created successfully",
-        None,
-    ))
-}
+// #[post("/create_user")]
+// pub async fn create_user(
+//     pool: web::Data<DbPool>,
+//     user: web::Json<NewUser>,
+// ) -> actix_web::Result<HttpResponse> {
+//     let user = user.into_inner();
+//
+//     Ok(ApiResponse::ok(
+//         user,
+//         "User created successfully",
+//         None,
+//     ))
+// }
 
 
 #[post("/token")]
@@ -24,7 +24,7 @@ pub async fn generate_token(
     pool: web::Data<DbPool>,
     user: web::Json<LoginRequest>,
 ) -> actix_web::Result<HttpResponse> {
-    let user = authentication::generate_token(pool, user).await.map_err(|e| {
+    let user = authentication::token(pool, user).await.map_err(|e| {
         actix_web::error::ErrorUnauthorized(e.to_string())
     })?;
     let auth = AuthResponse{

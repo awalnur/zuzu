@@ -1,10 +1,10 @@
 
 use crate::infrastructure::database::schemas::schemas::{password_hashes, accounts};
 use crate::infrastructure::database::schemas::{ schemas::sql_types };
-use diesel::{Queryable, Identifiable, Insertable, Selectable, sql_types::*};
+use diesel::{Queryable, Identifiable, Insertable, Selectable, AsChangeset};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize)]
+#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize, Clone)]
 #[diesel(table_name = accounts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
@@ -24,7 +24,7 @@ pub struct User {
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Deserialize, Insertable)]
+#[derive(Debug, Deserialize, Insertable, Clone,AsChangeset)]
 #[diesel(table_name = accounts)]
 pub struct NewUser {
     pub username: String,
@@ -36,10 +36,10 @@ pub struct NewUser {
     pub last_login: chrono::NaiveDateTime,
     pub two_factor_method: TwoFactorMethodEnum,
     pub preferred_language: Option<String>,
-    pub status: AccountStatusEnum
+    pub status: AccountStatusEnum,
 }
 
-#[derive(Debug,  Serialize, Deserialize, DbEnum)]
+#[derive(Debug,  Serialize, Deserialize, DbEnum, Clone)]
 #[ExistingTypePath = "sql_types::TwoFactorMethodEnum"]
 pub enum TwoFactorMethodEnum {
     None,
@@ -50,7 +50,7 @@ pub enum TwoFactorMethodEnum {
 }
 
 
-#[derive(Debug,  Serialize, Deserialize, DbEnum)]
+#[derive(Debug,  Serialize, Deserialize, DbEnum, Clone)]
 #[ExistingTypePath = "sql_types::AccountStatusEnum"]
 pub enum AccountStatusEnum {
     Active,
@@ -60,7 +60,7 @@ pub enum AccountStatusEnum {
 }
 
 
-#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize)]
+#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize, Clone)]
 #[diesel(table_name = password_hashes)]
 #[diesel(belongs_to(User))]
 pub struct PasswordHash{
@@ -74,4 +74,15 @@ pub struct PasswordHash{
     pub expiry: Option<chrono::NaiveDateTime>,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
+}
+
+#[derive(Debug, Deserialize, Insertable)]
+#[diesel(table_name = password_hashes)]
+pub struct NewPasswordHash {
+    pub user_id: uuid::Uuid,
+    pub password_hash: Vec<u8>,
+    pub salt: Vec<u8>,
+    pub algorithm: String,
+    pub is_temporary: bool,
+    pub expiry: chrono::NaiveDateTime,
 }

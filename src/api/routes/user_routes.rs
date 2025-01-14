@@ -1,6 +1,6 @@
 use actix_web::web;
 use crate::api::handlers::user_handlers::{create_user, delete_user, list_users, update_user};
-use crate::api::handlers::auth_handlers::{generate_token,list_auth};
+use crate::api::handlers::auth_handlers::{generate_token};
 
 pub fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -12,7 +12,6 @@ pub fn init(cfg: &mut web::ServiceConfig) {
                 .service(delete_user)
             )
             .service(web::scope("/auth")
-                .service(list_auth)
                 .service(generate_token)
             )
     );

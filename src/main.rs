@@ -1,4 +1,4 @@
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, App, HttpServer};
 use actix_web::web::Data;
 
 pub mod config;

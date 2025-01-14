@@ -1,5 +1,5 @@
 pub mod routes;
 mod handlers;
-mod dto;
+pub(crate) mod dto;
 mod response;
 pub(crate) mod error;

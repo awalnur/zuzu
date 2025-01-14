@@ -8,14 +8,13 @@ use crate::domain::models::authentication::LoginRequest;
 use crate::domain::repositories::user_repository::UserRepository;
 use crate::domain::repository::Repository;
 use crate::utils::errors::AppError;
+use crate::api::dto::requests::auth;
 
 pub async  fn token(
     pool: web::Data<DbPool>,
     payload: web::Json<LoginRequest>,
 )-> Result<HashMap<String, String>, AppError> {
     let repo = UserRepository::new(pool);
-    let test = repo.find_all(None, None, None).await;
-    println!("{:?}", test);
     let user = repo.find_by_username(&payload.username).await;
     match user {
         Ok(user) => {
@@ -51,3 +50,4 @@ pub async  fn token(
     }
     // This function will be implemented in the next step
 }
+

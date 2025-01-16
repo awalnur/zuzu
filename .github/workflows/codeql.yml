@@ -45,11 +45,6 @@ jobs:
           profile: minimal
           toolchain: stable
 
-      - name: Download Rust CodeQL Extractor
-        run: |
-          wget https://github.com/github/codeql-rust/releases/latest/download/codeql-rust.tar.gz
-          mkdir -p ~/codeql-extractors
-          tar -xzf codeql-rust.tar.gz -C ~/codeql-extractors
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

@@ -1,7 +1,7 @@
 use actix_web::body::BoxBody;
 use actix_web::http::StatusCode;
 use actix_web::middleware::ErrorHandlers;
-use crate::utils::errors::error_handler;
+use crate::api::error::error_handler;
 
 pub fn init_error_handlers() -> ErrorHandlers<BoxBody> {
     ErrorHandlers::<BoxBody>::new()

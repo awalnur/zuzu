@@ -1,13 +1,13 @@
 use actix_web::{middleware::Logger, App, HttpServer};
+use actix_web::web::Data;
 
 pub mod config;
-pub mod middlewares;
-pub mod models;
-pub mod schemas;
-pub mod services;
+pub mod api;
 pub mod utils;
-// pub mod routes;
-mod routes;
+pub mod domain;
+mod infrastructure;
+
+use api::routes;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .configure(routes::user_routes::init);
         if pool.is_some() {
-            app = app.app_data(pool.clone().unwrap());
+            app = app.app_data(Data::new(pool.clone().unwrap()));
         }
         app
     })

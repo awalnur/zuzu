@@ -66,6 +66,8 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+
     password_hashes (id) {
         id -> Uuid,
         user_id -> Uuid,

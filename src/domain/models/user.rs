@@ -1,10 +1,11 @@
 
-use crate::schemas::schemas::password_hashes;
-use diesel::{Queryable, Identifiable, Insertable, Selectable, sql_types::*};
+use crate::infrastructure::database::schemas::schemas::{password_hashes, accounts};
+use crate::infrastructure::database::schemas::{ schemas::sql_types };
+use diesel::{Queryable, Identifiable, Insertable, Selectable, AsChangeset};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
-#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize)]
-#[diesel(table_name = crate::schemas::schemas::accounts)]
+#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize, Clone)]
+#[diesel(table_name = accounts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     pub id: uuid::Uuid,
@@ -23,8 +24,8 @@ pub struct User {
     pub updated_at: chrono::NaiveDateTime,
 }
 
-#[derive(Debug, Deserialize, Insertable)]
-#[diesel(table_name = crate::schemas::schemas::accounts)]
+#[derive(Debug, Deserialize, Insertable, Clone,AsChangeset)]
+#[diesel(table_name = accounts)]
 pub struct NewUser {
     pub username: String,
     pub email: String,
@@ -35,11 +36,11 @@ pub struct NewUser {
     pub last_login: chrono::NaiveDateTime,
     pub two_factor_method: TwoFactorMethodEnum,
     pub preferred_language: Option<String>,
-    pub status: AccountStatusEnum
+    pub status: AccountStatusEnum,
 }
 
-#[derive(Debug,  Serialize, Deserialize, DbEnum)]
-#[ExistingTypePath = "crate::schemas::schemas::sql_types::TwoFactorMethodEnum"]
+#[derive(Debug,  Serialize, Deserialize, DbEnum, Clone)]
+#[ExistingTypePath = "sql_types::TwoFactorMethodEnum"]
 pub enum TwoFactorMethodEnum {
     None,
     Email,
@@ -49,8 +50,8 @@ pub enum TwoFactorMethodEnum {
 }
 
 
-#[derive(Debug,  Serialize, Deserialize, DbEnum)]
-#[ExistingTypePath = "crate::schemas::schemas::sql_types::AccountStatusEnum"]
+#[derive(Debug,  Serialize, Deserialize, DbEnum, Clone)]
+#[ExistingTypePath = "sql_types::AccountStatusEnum"]
 pub enum AccountStatusEnum {
     Active,
     Locked,
@@ -59,16 +60,29 @@ pub enum AccountStatusEnum {
 }
 
 
-#[derive(Debug, Deserialize, Queryable,  Serialize, Selectable)]
+#[derive(Debug, Deserialize, Selectable, Queryable, Identifiable, Serialize, Clone)]
 #[diesel(table_name = password_hashes)]
 #[diesel(belongs_to(User))]
 pub struct PasswordHash{
-    pub id: uuid::Uuid,
+    pub id: Option<uuid::Uuid>,
+    pub user_id: Option<uuid::Uuid>,
+    pub password_hash: Option<Vec<u8>>,
+    pub salt: Option<Vec<u8>>,
+    pub algorithm: Option<String>,
+    pub is_temporary: Option<bool>,
+    pub last_change_at: Option<chrono::NaiveDateTime>,
+    pub expiry: Option<chrono::NaiveDateTime>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
+}
+
+#[derive(Debug, Deserialize, Insertable)]
+#[diesel(table_name = password_hashes)]
+pub struct NewPasswordHash {
     pub user_id: uuid::Uuid,
     pub password_hash: Vec<u8>,
-    pub salt: String,
+    pub salt: Vec<u8>,
     pub algorithm: String,
     pub is_temporary: bool,
-    pub last_change_at: chrono::NaiveDateTime,
     pub expiry: chrono::NaiveDateTime,
 }
